@@ -9,39 +9,50 @@ use Illuminate\Http\Request;
 
 class SuratmasukController extends Controller
 {
-    public function index(){
-        $data = Suratmasuk::all();
+    public function index(Request $request)
+    {
+        if ($request->has('search')) {
+            $data = Suratmasuk::where('no_surat', 'LIKE', '%' . $request->search . '%')->get();;
+        } else {
+            $data = Suratmasuk::all();
+        }
+
         return view('datasurat', compact('data'));
-}
+    }
 
-public function tambahsurat(){
-    return view('tambahdata');
-}
+    public function tambahsurat()
+    {
+        return view('tambahdata');
+    }
 
-public function insertdata(Request $request){
-    Suratmasuk::create($request->all());
-    return redirect()->route('surat')->with('success','Data Berhasil Ditambahkan');
-}
+    public function insertdata(Request $request)
+    {
+        Suratmasuk::create($request->all());
+        return redirect()->route('surat')->with('success', 'Data Berhasil Ditambahkan');
+    }
 
-public function tampilkandata($id){
-    
-    $data = Suratmasuk::find($id);
-    
-    return view('tampildata',compact('data'));
-}
+    public function tampilkandata($id)
+    {
 
-public function updatedata(Request $request, $id){
-    
-    $data = Suratmasuk::find($id);
-    $data->update($request->all());
-    
-    return redirect()->route('surat')->with('success','Data Berhasil Diedit');
-}
+        $data = Suratmasuk::find($id);
 
-public function delete($id){
-    
-    $data = Suratmasuk::find($id);
-    $data->delete();
-    return redirect()->route('surat')->with('success','Data Berhasil Dihapus');
-}
+        return view('tampildata', compact('data'));
+    }
+
+    public function updatedata(Request $request, $id)
+    {
+
+        $data = Suratmasuk::find($id);
+        $data->update($request->all());
+
+        return redirect()->route('surat')->with('success', 'Data Berhasil Diedit');
+    }
+
+    public function delete($id)
+    {
+
+        $data = Suratmasuk::find($id);
+        $data->delete();
+        return redirect()->route('surat')->with('success', 'Data Berhasil Dihapus');
+    }
 }
