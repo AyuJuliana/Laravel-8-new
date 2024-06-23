@@ -14,11 +14,12 @@
     <title>Pelaporan Surat</title>
 </head>
 <body>
-    <h1 class="text-center mb-4">Pelaporan Surat</h1>
+    <h1 class="text-center mb-5">Pelaporan Surat</h1>
   
     <div class="container">
         <!-- Form Pencarian -->
         <form method="GET" action="{{ url('/pelaporan') }}">
+            <h2 class="text-left mb-3">Cari Bulan Laporan Surat</h2>
             <div class="row mb-4">
                 <div class="col-md-5">
                     <input type="month" name="filter_bulan" class="form-control" placeholder="Filter Bulan">
@@ -31,13 +32,10 @@
         
         <div class="row">
             <div class="col-md-6">
-                <h2>Statistik Surat Masuk</h2>
+                <h2>Statistik Surat Keluar-Masuk</h2>
                 <canvas id="chartSuratMasuk"></canvas>
             </div>
-            <div class="col-md-6">
-                <h2>Statistik Surat Keluar</h2>
-                <canvas id="chartSuratKeluar"></canvas>
-            </div>
+            
         </div>
         <div class="row mt-4">
             <div class="col-md-12">
@@ -50,39 +48,60 @@
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
 
+
     <!-- Mengambil data dari database dan mengolahnya -->
     <?php
     // Ambil filter bulan dari input
     $filterBulan = request('filter_bulan');
 
-    // Ambil data surat masuk dari database
-    if ($filterBulan) {
-        $suratMasuk = \App\Models\Suratmasuk::whereMonth('created_at', '=', date('m', strtotime($filterBulan)))
-            ->whereYear('created_at', '=', date('Y', strtotime($filterBulan)))
-            ->get();
-    } else {
-        $suratMasuk = \App\Models\Suratmasuk::all();
-    }
+    // Ambil data surat masuk dari database berdasarkan judul surat yang ada di LetterSeeder
+    $judulSurat = [
+        'Surat Pengajuan Izin Bangunan',
+        'Surat Keterangan Domisili',
+        'Surat Permohonan Keringanan Pajak',
+        'Surat Pengajuan Izin Menikah',
+        'Surat Pengajuan Tanah',
+    ];
 
-    // Inisialisasi array untuk statistik
+    // Inisialisasi array untuk kategori surat
     $kategoriSurat = [];
-    foreach ($suratMasuk as $surat) {
-        $kategori = $surat->perihal_surat;
+    foreach ($judulSurat as $judul) {
+        $kategori = substr($judul, 6); // Ambil bagian judul setelah "Surat "
         if (!isset($kategoriSurat[$kategori])) {
-            $kategoriSurat[$kategori] = 1;
-        } else {
-            $kategoriSurat[$kategori]++;
+            $kategoriSurat[$kategori] = 0;
         }
     }
 
-    // Data statistik surat masuk
+    // Hitung jumlah surat masuk per kategori
+    foreach ($judulSurat as $judul) {
+        $kategori = substr($judul, 6); // Ambil bagian judul setelah "Surat "
+        $count = \App\Models\Letter::where('judul', $judul)
+            ->whereMonth('created_at', '=', date('m', strtotime($filterBulan)))
+            ->whereYear('created_at', '=', date('Y', strtotime($filterBulan)))
+            ->count();
+        $kategoriSurat[$kategori] += $count;
+    }
+
+    // Ambil data surat yang sudah keluar (yang sudah dibaca oleh kepala desa)
+    $suratKeluar = \App\Models\Letter::where('status', 'validated_chief')
+        ->whereMonth('created_at', '=', date('m', strtotime($filterBulan)))
+        ->whereYear('created_at', '=', date('Y', strtotime($filterBulan)))
+        ->count();
+
+    // Inisialisasi array untuk statistik
     $dataSuratMasuk = [
-        'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul'],
+        'labels' => $judulSurat,
         'datasets' => [[
             'label' => 'Surat Masuk',
-            'data' => [12, 19, 3, 5, 2, 3, 10], // Data ini bisa disesuaikan sesuai bulan
+            'data' => array_values($kategoriSurat), // Menggunakan jumlah surat masuk per kategori
             'backgroundColor' => 'rgba(54, 162, 235, 0.2)',
             'borderColor' => 'rgba(54, 162, 235, 1)',
+            'borderWidth' => 1
+        ], [
+            'label' => 'Surat Keluar',
+            'data' => [$suratKeluar],
+            'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
+            'borderColor' => 'rgba(255, 99, 132, 1)',
             'borderWidth' => 1
         ]]
     ];
@@ -96,12 +115,16 @@
             'backgroundColor' => [
                 'rgba(255, 206, 86, 0.2)',
                 'rgba(75, 192, 192, 0.2)',
-                'rgba(153, 102, 255, 0.2)'
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
             ],
             'borderColor' => [
                 'rgba(255, 206, 86, 1)',
                 'rgba(75, 192, 192, 1)',
-                'rgba(153, 102, 255, 1)'
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)',
+                'rgba(54, 162, 235, 1)',
             ],
             'borderWidth' => 1
         ]]
@@ -137,5 +160,11 @@
             }
         });
     </script>
+
+
 </body>
 </html>
+
+
+
+
